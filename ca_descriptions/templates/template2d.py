@@ -1,4 +1,4 @@
-# Name: NAME
+# Name: Forest Fire
 # Dimensions: 2
 
 # --- Set up executable path, do not edit ---
@@ -14,22 +14,33 @@ sys.path.append(main_dir_loc + 'capyle/guicomponents')
 
 from capyle.ca import Grid2D, Neighbourhood, randomise2d
 import capyle.utils as utils
-
+import numpy as np
 
 def setup(args):
     """Set up the config object used to interact with the GUI"""
     config_path = args[0]
     config = utils.load(config_path)
     # -- THE CA MUST BE RELOADED IN THE GUI IF ANY OF THE BELOW ARE CHANGED --
-    config.title = "NAME"
+    config.title = "Forest Fire"
     config.dimensions = 2
-    config.states = STATES
+    config.states = (0, 1, 2, 3, 4, 5, 6) # 0-3: unburnt chapparal/dense_forest/canyon/lake, 4: burning, 5: burnt
+    
     # -------------------------------------------------------------------------
 
     # ---- Override the defaults below (these may be changed at anytime) ----
 
-    # config.state_colors = [(0,0,0),(1,1,1)]
-    # config.grid_dims = (200,200)
+    YELLOW = (1,1,0)
+    GREEN = (0,1,0)
+    GREY = (0.5,0.5,0.5)
+    BLUE = (0,0,1)
+    RED = (1,0,0)
+    BLACK = (0,0,0)
+    WHITE = (1,1,1)
+
+    # 0-3: unburnt chapparal/dense_forest/canyon/lake, 4: burning, 5: burnt, 6: town
+    config.state_colors = [YELLOW,GREEN,GREY,BLUE,RED,BLACK, WHITE]
+    config.num_generations = 4320 # 90 days - 30-minute time steps
+    config.grid_dims = (50,50)
 
     # ----------------------------------------------------------------------
 
@@ -45,8 +56,38 @@ def setup(args):
 def transition_function(grid, neighbourstates, neighbourcounts):
     """Function to apply the transition rules
     and return the new grid"""
-    # YOUR CODE HERE
+    
+    ch, df, ca, la, br, bu, tw = neighbourcounts
+    # [X, X, X
+    #  X, P, X,
+    #  X, X, X]
+
+    cell_should_burn = (grid == 4)
+
+    if np.any(cell_should_burn):
+        burn = True
+    else:
+        burn = False
+
+    grid[:, :] = 0
+
+    grid[burn] = 4
+
     return grid
+
+    # # dead = state == 0, live = state == 1
+    # # unpack state counts for state 0 and state 1
+    # dead_neighbours, live_neighbours = neighbourcounts
+    # # create boolean arrays for the birth & survival rules
+    # # if 3 live neighbours and is dead -> cell born
+    # birth = (live_neighbours == 3) & (grid == 0)
+    # # if 2 or 3 live neighbours and is alive -> survives
+    # survive = ((live_neighbours == 2) | (live_neighbours == 3)) & (grid == 1)
+    # # Set all cells to 0 (dead)
+    # grid[:, :] = 0
+    # # Set cells to 1 where either cell is born or survives
+    # grid[birth | survive] = 1
+    # return grid
 
 
 def main():
