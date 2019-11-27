@@ -60,55 +60,66 @@ def transition_function(grid, neighbourstates, neighbourcounts):
     and return the new grid"""
 
     GRASS = 0
+    FOREST = 1
+    CANYON = 2
+    LAKE = 3
     BURNING = 4
+    BURNT = 5
+    TOWN = 6
 
-    # instead of this I think it's better to use objects
+    TERRAIN = [
+        { # 0
+            "name": "grass",
+            "state": 0,
+            "ignition": 0.6,
+            "fuel_capacity": 192,
+            "colour": (0,1,0)
+        },
 
-    # 2d arrays representing the grid
-    burning_neighbours = neighbourcounts[BURNING]
+        { # 1
+            "name": "dense_forest",
+            "state": 1,
+            "ignition": 0.3,
+            "fuel_capacity": 960,
+            "colour": (0,1,0)
+        },
 
-    unburnt_cells = grid == GRASS
-    burning_cells = grid == BURNING
+        { # 2
+            "name": "canyon",
+            "state": 2,
+            "ignition": 0.9,
+            "fuel_capacity": 8,
+            "colour": (0.5,0.5,0.5)
+        },
 
-    # burn if burning neighbour(s) and if chapparal
-    burn_baby_burn = (burning_neighbours > 0) & (grid == GRASS)
+        { # 3
+            "name": "lake",
+            "state": 3,
+            "ignition": 0,
+            "fuel_capacity": 0,
+            "colour": (0,0,1)
+        }
+    ]
 
-    grid[burn_baby_burn] = BURNING
+    # # 2d arrays representing the grid
+    # burning_neighbours = neighbourcounts[BURNING]
+
+    # unburnt_grass = grid == grass["state"]
+    # burning_cells = grid == BURNING
+
+    # # burn if burning neighbour(s) and if chapparal
+    # cells_to_burn = (burning_neighbours > 0) & (grid == grass["state"])
+
+    # grass_fuel_values_lt0 = grid == (grass["fuel_capacity"] <= 0)
+    # too_burnt_grass = (grid == BURNING) & (grid == grass["state"]) & grass_fuel_values_lt0
+
+    # # if grass is burning and fuel > 0:
+    #     # fuel--
+
+
+    # grid[cells_to_burn] = BURNING
 
     return grid
-
-    # ch, df, ca, la, br, bu, tw = neighbourcounts
-    # # [X, X, X
-    # #  X, P, X,
-    # #  X, X, X]
-
-    # cell_should_burn = (grid == 4)
-
-    # if np.any(cell_should_burn):
-    #     burn = True
-    # else:
-    #     burn = False
-
-    # grid[:, :] = 0
-
-    # grid[burn] = 4
-
-    # return grid
-
-    # # dead = state == 0, live = state == 1
-    # # unpack state counts for state 0 and state 1
-    # dead_neighbours, live_neighbours = neighbourcounts
-    # # create boolean arrays for the birth & survival rules
-    # # if 3 live neighbours and is dead -> cell born
-    # birth = (live_neighbours == 3) & (grid == 0)
-    # # if 2 or 3 live neighbours and is alive -> survives
-    # survive = ((live_neighbours == 2) | (live_neighbours == 3)) & (grid == 1)
-    # # Set all cells to 0 (dead)
-    # grid[:, :] = 0
-    # # Set cells to 1 where either cell is born or survives
-    # grid[birth | survive] = 1
-    # return grid
-
 
 def main():
     """ Main function that sets up, runs and saves CA"""
@@ -117,7 +128,36 @@ def main():
 
     # Create grid object using parameters from config + transition function
     grid = Grid2D(config, transition_function)
+    # more initialization
 
+    GRASS = 0
+    FOREST = 1
+    CANYON = 2
+    LAKE = 3
+    BURNING = 4
+    BURNT = 5
+    TOWN = 6
+
+    fuel_values_grid = np.zeros(shape=(50, 50))
+    for row in range(50):
+        print(f"ROW IS {row}")
+        for col in range(50):
+            print(f"COL IS {col}")
+            if grid.grid[row,col] == GRASS:
+                fuel_values_grid[row,col] = 192
+            elif grid.grid[row,col] == FOREST:
+                fuel_values_grid[row,col] = 960
+            elif grid.grid[row,col] == CANYON:
+                fuel_values_grid[row,col] = 8
+            elif grid.grid[row,col] == LAKE:
+                fuel_values_grid[row,col] = 1
+            elif grid.grid[row,col] == BURNING:
+                fuel_values_grid[row,col] = 192
+            elif grid.grid[row,col] == TOWN:
+                fuel_values_grid[row,col] = 1
+
+    print(f"FUEL VALUES GRID = {fuel_values_grid}")
+    print(f"THE REAL GRID = {grid.grid}")
     # Run the CA, save grid state every generation to timeline
     timeline = grid.run()
 

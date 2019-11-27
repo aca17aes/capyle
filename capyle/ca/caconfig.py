@@ -43,6 +43,7 @@ class CAConfig(object):
             fillstate = self.states[0] if self.states is not None else 0
             self.initial_grid = np.zeros(self.grid_dims, dtype=type(fillstate))
             self.initial_grid.fill(fillstate)
+            self.initial_grid[4:7, 8:24].fill(3)
 
         # neighbourhood array
         if self.nhood_arr is None:
