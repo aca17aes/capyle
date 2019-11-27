@@ -39,8 +39,10 @@ def setup(args):
 
     # 0-3: unburnt chapparal/dense_forest/canyon/lake, 4: burning, 5: burnt, 6: town
     config.state_colors = [YELLOW,GREEN,GREY,BLUE,RED,BLACK, WHITE]
-    config.num_generations = 4320 # 90 days - 30-minute time steps
+    config.num_generations = 50 # 4320 # 90 days - 30-minute time steps
     config.grid_dims = (50,50)
+    config.wrap = False # where is the original config file with all the defaults?
+    # ok so I couldn't find it BUT the original wolframs_1d has the config.wrap set up
 
     # ----------------------------------------------------------------------
 
@@ -56,24 +58,42 @@ def setup(args):
 def transition_function(grid, neighbourstates, neighbourcounts):
     """Function to apply the transition rules
     and return the new grid"""
-    
-    ch, df, ca, la, br, bu, tw = neighbourcounts
-    # [X, X, X
-    #  X, P, X,
-    #  X, X, X]
 
-    cell_should_burn = (grid == 4)
+    GRASS = 0
+    BURNING = 4
 
-    if np.any(cell_should_burn):
-        burn = True
-    else:
-        burn = False
+    # instead of this I think it's better to use objects
 
-    grid[:, :] = 0
+    # 2d arrays representing the grid
+    burning_neighbours = neighbourcounts[BURNING]
 
-    grid[burn] = 4
+    unburnt_cells = grid == GRASS
+    burning_cells = grid == BURNING
+
+    # burn if burning neighbour(s) and if chapparal
+    burn_baby_burn = (burning_neighbours > 0) & (grid == GRASS)
+
+    grid[burn_baby_burn] = BURNING
 
     return grid
+
+    # ch, df, ca, la, br, bu, tw = neighbourcounts
+    # # [X, X, X
+    # #  X, P, X,
+    # #  X, X, X]
+
+    # cell_should_burn = (grid == 4)
+
+    # if np.any(cell_should_burn):
+    #     burn = True
+    # else:
+    #     burn = False
+
+    # grid[:, :] = 0
+
+    # grid[burn] = 4
+
+    # return grid
 
     # # dead = state == 0, live = state == 1
     # # unpack state counts for state 0 and state 1
