@@ -111,32 +111,75 @@ def transition_function(grid, neighbourstates, neighbourcounts):
     global fuel_grid, ignition_grid, wind_direction
 
     # commenting out the unused lines for now
+    # make sure they're ACTUALLY unused and not that you forgot them!
 
     # ----
     # ok so
     # do we need the number of neighbours in each cardinal direction?
     # let's make it and if it ends up unused then we will comment it out or delete it
     # it seems like for that you need to shift the entire grid
+    # OR simply figure out how neighbourstates works
     # and then replace all "out of bounds" with 0 burning neighbours
     # and do we need the number of burning neighbours?
     # yes, because we need to increase the probability of a cell burning based on that
+    # one more thing: consider integrating flammability and iginition threshold
+    # one more thing: consider the position of the "extra forest" and the "air strike"
     # ----
  
     ignition_probabilities = np.random.rand(GRID_SIZE,GRID_SIZE)
 
-    # burnt_neighbours = neighbourcounts[burnt.state]
+    burnt_neighbours = neighbourcounts[burnt.state]
     burning_neighbours = neighbourcounts[burning.state]
-    # dead_neighbours = burnt_neighbours + burning_neighbours
+    dead_neighbours = burnt_neighbours + burning_neighbours
 
-    # burnt_cells = (grid == burnt.state)
+    # the number of dead neighbours can go from 0 to 7 (8 is a 100% chance to burn)
+    burning_neighbours_probabilities = {
+        8: 1,
+        7: -1,
+        6: -1,
+        5: -1,
+        4: -1,
+        3: -1,
+        2: -1,
+        1: -1,
+        0: 0
+    }
+
+    # the order of neighbourstates is NW, N, NE, W, E, SW, S, SE
+    burning_neighbours_locations = {
+        "NW": neighbourstates[0],
+        "N": neighbourstates[1],
+        "NE": neighbourstates[2],
+        "W": neighbourstates[3],
+        "E": neighbourstates[4],
+        "SW": neighbourstates[5],
+        "S": neighbourstates[6],
+        "SE": neighbourstates[7]
+    }
+
+
+
+    # print(f"I AM\n{burning_neighbours_NW}\nf"burning_neighbours_NW")
+    # print(f"I AM\n{burning_neighbours_N}\nf"burning_neighbours_N")
+    # print(f"I AM\n{burning_neighbours_NE}\nf"burning_neighbours_NE")
+    # print(f"I AM\n{burning_neighbours_W}\nf"burning_neighbours_W")
+    # print(f"I AM\n{burning_neighbours_E}\nf"burning_neighbours_E")
+    # print(f"I AM\n{burning_neighbours_SW}\nf"burning_neighbours_SW")
+    # print(f"I AM\n{burning_neighbours_S}\nf"burning_neighbours_S")
+    # print(f"I AM\n{burning_neighbours_SE}\nf"burning_neighbours_SE")
+    # sys.exit()
+
+    # print(burning_neighbours_n)
+
+    burnt_cells = (grid == burnt.state)
     burning_cells = (grid == burning.state)
 
-    # chapparal_cells = (grid == chapparal.state)
-    # forest_cells = (grid == forest.state)
-    # canyon_cells = (grid == canyon.state)
-    # flammable_cells = chapparal_cells + forest_cells + canyon_cells
+    chapparal_cells = (grid == chapparal.state)
+    forest_cells = (grid == forest.state)
+    canyon_cells = (grid == canyon.state)
+    flammable_cells = chapparal_cells + forest_cells + canyon_cells
 
-    cells_can_ignite = (ignition_probabilities > ignition_grid)
+    cells_can_ignite = (ignition_probabilities > ignition_grid) & flammable_cells
 
     fuel_grid[burning_cells] -= 1
     cells_no_more_fuel = (fuel_grid <= 0)
