@@ -50,6 +50,18 @@ def fuel_switch(cell_state):
     }
     return fuel_capacities.get(cell_state, 1)
 
+def ignition_switch(cell_state):
+    ignition_thresholds = {
+        burnt.state: burnt.ignition_threshold,
+        burning.state: burning.ignition_threshold,
+        chapparal.state: chapparal.ignition_threshold,
+        forest.state: forest.ignition_threshold,
+        canyon.state: canyon.ignition_threshold,
+        lake.state: lake.ignition_threshold,
+        town.state: town.ignition_threshold
+    }
+    return ignition_thresholds.get(cell_state, 0)
+
 def setup(args):
     """Set up the config object used to interact with the GUI"""
     config_path = args[0]
@@ -96,8 +108,9 @@ def setup(args):
 def transition_function(grid, neighbourstates, neighbourcounts):
     """Function to apply the transition rules
     and return the new grid"""
-    
-    ignition_threshold_grid = np.random.rand(GRID_SIZE,GRID_SIZE)
+    global fuel_grid, ignition_grid
+ 
+    random_ignition_grid = np.random.rand(GRID_SIZE,GRID_SIZE)
 
     burnt_neighbours = neighbourcounts[burnt.state]
     burning_neighbours = neighbourcounts[burning.state]
@@ -111,12 +124,8 @@ def transition_function(grid, neighbourstates, neighbourcounts):
     canyon_cells = (grid == canyon.state)
     cells = chapparal_cells + forest_cells + canyon_cells
 
-    chapparal_cells_can_ignite = chapparal_cells & (ignition_threshold_grid > chapparal.ignition_threshold)
-    forest_cells_can_ignite = forest_cells & (ignition_threshold_grid > forest.ignition_threshold)
-    canyon_cells_can_ignite = canyon_cells & (ignition_threshold_grid > canyon.ignition_threshold)
-    cells_can_ignite = chapparal_cells_can_ignite + forest_cells_can_ignite + canyon_cells_can_ignite
+    cells_can_ignite = (random_ignition_grid > ignition_grid)
 
-    global fuel_grid
     fuel_grid[burning_cells] -= 1
     cells_no_more_fuel = (fuel_grid <= 0)
 
@@ -136,8 +145,10 @@ def main():
     # Create grid object using parameters from config + transition function
     grid = Grid2D(config, transition_function)
     # how can I make this global and use it in the transition function?
-    global fuel_grid
+    global fuel_grid, ignition_grid
     fuel_grid = grid_mapper(fuel_switch, grid.grid)
+    # might want to change this since the ignition values are only used once
+    ignition_grid = grid_mapper(ignition_switch, grid.grid)
 
     # Run the CA, save grid state every generation to timeline
     timeline = grid.run()
