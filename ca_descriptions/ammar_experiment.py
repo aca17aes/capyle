@@ -18,29 +18,34 @@ import numpy as np
 from collections import namedtuple
 # ---
 
-# --- GLOBAL VARIABLES
+# --- GLOBAL VARIABLES AND CODE TO RUN BEFORE MAIN
 
-GRID_SIZE = (7,7)
+GRID_SIZE = (50,50)
 
-State = namedtuple("State", "id color")
+Cell = namedtuple("Cell", "state color fuel_capacity ignition_chance")
 
-burnt = State(0, (0,0,0))
-burning = State(1, (1,0,0))
-unburnt = State(2, (0,1,0))
-kappa_state = State(3, (1,1,1))
+burnt = Cell(0, (0,0,0), 0, 0)
+burning = Cell(1, (1,0,0), 192, 0)
+unburnt_chapparal = Cell(2, (0,1,0), 192, 0.6)
+unburnt_forest = Cell(3, (0.8,0.4,0.2), 960, 0.3)
+unburnt_canyon = Cell(4, (0.75,0.75,0.75), 8, 0.9)
+lake = Cell(5, (0,0,1), 1, 1)
+town = Cell(6, (1,1,1), 1, 0)
 
-Material = namedtuple("Material", "id color ")
+# Material = namedtuple("Material", "state color ")
 
-#
-
+# this method could be abstracted to map any function onto the grid so please do that
 fuel_grid = np.zeros(GRID_SIZE)
 def fuel_mapper(grid_row):
     def fuel_switch(material):
         capacities = {
-            0: 192,
-            1: 200,
-            2: 483,
-            3: 4
+            burnt.state: burnt.fuel_capacity,
+            burning.state: burning.fuel_capacity,
+            unburnt_chapparal.state: unburnt_chapparal.fuel_capacity,
+            unburnt_forest.state: unburnt_forest.fuel_capacity,
+            unburnt_canyon.state: unburnt_canyon.fuel_capacity,
+            lake.state: lake.fuel_capacity,
+            town.state: town.fuel_capacity
         }
         return capacities.get(material, 1)
     return [fuel_switch(cell) for cell in grid_row]
@@ -53,12 +58,28 @@ def setup(args):
     # -- THE CA MUST BE RELOADED IN THE GUI IF ANY OF THE BELOW ARE CHANGED --
     config.title = "Forest Fire"
     config.dimensions = 2
-    config.states = (burnt.id, burning.id, unburnt.id, kappa_state.id)
+    config.states = (
+                    burnt.state,
+                    burning.state,
+                    unburnt_chapparal.state,
+                    unburnt_forest.state,
+                    unburnt_canyon.state,
+                    lake.state,
+                    town.state
+                    )
 
     # ---- Override the defaults below (these may be changed at anytime) -----
 
-    config.state_colors = [burnt.color, burning.color, unburnt.color, kappa_state.color]
-    config.num_generations = 21
+    config.state_colors = [
+                          burnt.color,
+                          burning.color,
+                          unburnt_chapparal.color,
+                          unburnt_forest.color,
+                          unburnt_canyon.color,
+                          lake.color,
+                          town.color
+                          ]
+    config.num_generations = 4320
     config.grid_dims = GRID_SIZE
     config.wrap = False
 
@@ -76,45 +97,28 @@ def transition_function(grid, neighbourstates, neighbourcounts):
     """Function to apply the transition rules
     and return the new grid"""
 
-    burnt_neighbours = neighbourcounts[burnt.id]
-    burning_neighbours = neighbourcounts[burning.id]
+    burnt_neighbours = neighbourcounts[burnt.state]
+    burning_neighbours = neighbourcounts[burning.state]
+    dead_neighbours = burnt_neighbours + burning_neighbours
 
-    burnt_cells = (grid == burnt.id)
-    burning_cells = (grid == burning.id)
-    unburnt_cells = (grid == unburnt.id)
-    kappa_state_cells = (grid == kappa_state.id)
+    burnt_cells = (grid == burnt.state)
+    burning_cells = (grid == burning.state)
+
+    unburnt_chapparal_cells = (grid == unburnt_chapparal.state)
+    unburnt_forest_cells = (grid == unburnt_forest.state)
+    unburnt_canyon_cells = (grid == unburnt_canyon.state)
+    unburnt_cells = unburnt_chapparal_cells + unburnt_forest_cells + unburnt_canyon_cells
 
     global fuel_grid
-    fuel_grid[burning_cells] -= 99
-    print(fuel_grid)
+    fuel_grid[burning_cells] -= 1
 
     no_more_fuel = (fuel_grid <= 0)
 
     cells_to_burnt = (grid == no_more_fuel)
-    cells_to_burning = (unburnt_cells | kappa_state_cells) & (burning_neighbours > 0)
+    cells_to_burning = unburnt_cells & (burning_neighbours > 0)
 
-    grid[cells_to_burnt] = burnt.id
-    grid[cells_to_burning] = burning.id
-
-    # seems that the initial fuel grid is functioning as it should
-    # HOWEVER the fire isn't spreading yet so they will all burn out at the same time
-
-    # # 2d arrays representing the grid
-    # burning_neighbours = neighbourcounts[BURNING]
-
-    # unburnt_grass = grid == grass["state"]
-    # burning_cells = grid == BURNING
-
-    # # burn if burning neighbour(s) and if chapparal
-    # cells_to_burn = (burning_neighbours > 0) & (grid == grass["state"])
-
-    # grass_fuel_values_lt0 = grid == (grass["fuel_capacity"] <= 0)
-    # too_burnt_grass = (grid == BURNING) & (grid == grass["state"]) & grass_fuel_values_lt0
-
-    # # if grass is burning and fuel > 0:
-    #     # fuel--
-
-    # grid[cells_to_burn] = BURNING
+    grid[cells_to_burnt] = burnt.state
+    grid[cells_to_burning] = burning.state
 
     return grid
 
