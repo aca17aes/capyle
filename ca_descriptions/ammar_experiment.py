@@ -15,8 +15,6 @@ sys.path.append(main_dir_loc + 'capyle/guicomponents')
 from capyle.ca import Grid2D, Neighbourhood, randomise2d
 import capyle.utils as utils
 import numpy as np
-import numpy.random as rnd
-from collections import namedtuple
 from functools import partial
 # ---
 
@@ -24,22 +22,34 @@ from functools import partial
 
 GRID_SIZE = 50
 
-Cell = namedtuple("Cell", "state color values")
-# there's probably a better way to do this... so learn that way and keep it DRY!
-burnt = Cell(0, (0,0,0), {"fuel_capacity": 0, "ignition_threshold": 1})
-burning = Cell(1, (1,0,0), {"fuel_capacity": 192, "ignition_threshold": 1})
-chapparal = Cell(2, (0,1,0), {"fuel_capacity": 192, "ignition_threshold": 0.6})
-forest = Cell(3, (0.8,0.4,0.2), {"fuel_capacity": 960, "ignition_threshold": 0.9})
-canyon = Cell(4, (0.75,0.75,0.75), {"fuel_capacity": 8, "ignition_threshold": 0.3})
-lake = Cell(5, (0,0,1), {"fuel_capacity": 1, "ignition_threshold": 1})
-town = Cell(6, (1,1,1), {"fuel_capacity": 1, "ignition_threshold": 0})
+# turns out the better way is just to make a class I suppose -\n/- (attempt at recreating shrug emoji)
+class Cell:
+    def __init__(self, desc, state, color, fuel_capacity=1, ignition_threshold=0):
+        self.state = state
+        self.color = color
+
+        self.values = dict()
+        self.values["desc"] = desc
+        self.values["fuel_capacity"] = fuel_capacity
+        self.values["ignition_threshold"] = ignition_threshold
+
+    def __str__(self):
+        return f"\n{desc} cell\nstate: {state}, color: {color}\nstatus: {values}"
+
+burnt = Cell("burnt", 0, (0,0,0), 0, 1)
+burning = Cell("burning", 1, (1,0,0), 192, 1)
+chapparal = Cell("chapparal", 2, (0,1,0), 192, 0.6)
+forest = Cell("forest", 3, (0.8,0.4,0.2), 960, 0.9)
+canyon = Cell("canyon", 4, (0.75,0.75,0.75), 8, 0.3)
+lake = Cell("lake", 5, (0,0,1), 1, 1)
+town = Cell("town", 6, (1,1,1), 1, 0)
 
 def grid_mapper(fn, grid):
     def row_mapper(fn, row):
         return [fn(cell) for cell in row]
     return np.array([row_mapper(fn, row) for row in grid])
 
-def switcheroo(cell_state, value_key=None, default=-1):
+def switcheroo(cell_state, value_key="desc", default=-1):
     values = {
         burnt.state: burnt.values[value_key],
         burning.state: burning.values[value_key],
