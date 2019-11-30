@@ -17,50 +17,39 @@ import capyle.utils as utils
 import numpy as np
 import numpy.random as rnd
 from collections import namedtuple
+from functools import partial
 # ---
 
 # --- GLOBAL VARIABLES AND CODE TO RUN BEFORE MAIN
 
 GRID_SIZE = 50
 
-Cell = namedtuple("Cell", "state color fuel_capacity ignition_threshold")
-
-burnt = Cell(0, (0,0,0), 0, 1)
-burning = Cell(1, (1,0,0), 192, 1)
-chapparal = Cell(2, (0,1,0), 192, 0.6)
-forest = Cell(3, (0.8,0.4,0.2), 960, 0.9)
-canyon = Cell(4, (0.75,0.75,0.75), 8, 0.3)
-lake = Cell(5, (0,0,1), 1, 1)
-town = Cell(6, (1,1,1), 1, 0)
+Cell = namedtuple("Cell", "state color values")
+# there's probably a better way to do this... so learn that way and keep it DRY!
+burnt = Cell(0, (0,0,0), {"fuel_capacity": 0, "ignition_threshold": 1})
+burning = Cell(1, (1,0,0), {"fuel_capacity": 192, "ignition_threshold": 1})
+chapparal = Cell(2, (0,1,0), {"fuel_capacity": 192, "ignition_threshold": 0.6})
+forest = Cell(3, (0.8,0.4,0.2), {"fuel_capacity": 960, "ignition_threshold": 0.9})
+canyon = Cell(4, (0.75,0.75,0.75), {"fuel_capacity": 8, "ignition_threshold": 0.3})
+lake = Cell(5, (0,0,1), {"fuel_capacity": 1, "ignition_threshold": 1})
+town = Cell(6, (1,1,1), {"fuel_capacity": 1, "ignition_threshold": 0})
 
 def grid_mapper(fn, grid):
     def row_mapper(fn, row):
         return [fn(cell) for cell in row]
     return np.array([row_mapper(fn, row) for row in grid])
 
-def fuel_switch(cell_state):
-    fuel_capacities = {
-        burnt.state: burnt.fuel_capacity,
-        burning.state: burning.fuel_capacity,
-        chapparal.state: chapparal.fuel_capacity,
-        forest.state: forest.fuel_capacity,
-        canyon.state: canyon.fuel_capacity,
-        lake.state: lake.fuel_capacity,
-        town.state: town.fuel_capacity
+def switcheroo(cell_state, value_key=None, default=-1):
+    values = {
+        burnt.state: burnt.values[value_key],
+        burning.state: burning.values[value_key],
+        chapparal.state: chapparal.values[value_key],
+        forest.state: forest.values[value_key],
+        canyon.state: canyon.values[value_key],
+        lake.state: lake.values[value_key],
+        town.state: town.values[value_key]
     }
-    return fuel_capacities.get(cell_state, 1)
-
-def ignition_switch(cell_state):
-    ignition_thresholds = {
-        burnt.state: burnt.ignition_threshold,
-        burning.state: burning.ignition_threshold,
-        chapparal.state: chapparal.ignition_threshold,
-        forest.state: forest.ignition_threshold,
-        canyon.state: canyon.ignition_threshold,
-        lake.state: lake.ignition_threshold,
-        town.state: town.ignition_threshold
-    }
-    return ignition_thresholds.get(cell_state, 0)
+    return values.get(cell_state, default)
 
 def setup(args):
     """Set up the config object used to interact with the GUI"""
@@ -144,11 +133,14 @@ def main():
 
     # Create grid object using parameters from config + transition function
     grid = Grid2D(config, transition_function)
-    # how can I make this global and use it in the transition function?
+
     global fuel_grid, ignition_grid
-    fuel_grid = grid_mapper(fuel_switch, grid.grid)
+
+    fn_fuel = partial(switcheroo, value_key="fuel_capacity", default=1)
+    fuel_grid = grid_mapper(fn_fuel, grid.grid)
     # might want to change this since the ignition values are only used once
-    ignition_grid = grid_mapper(ignition_switch, grid.grid)
+    fn_ignition = partial(switcheroo, value_key="ignition_threshold", default=0)
+    ignition_grid = grid_mapper(fn_ignition, grid.grid)
 
     # Run the CA, save grid state every generation to timeline
     timeline = grid.run()
