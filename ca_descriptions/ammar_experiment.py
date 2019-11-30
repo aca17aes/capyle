@@ -108,23 +108,35 @@ def setup(args):
 def transition_function(grid, neighbourstates, neighbourcounts):
     """Function to apply the transition rules
     and return the new grid"""
-    global fuel_grid, ignition_grid
+    global fuel_grid, ignition_grid, wind_direction
+
+    # commenting out the unused lines for now
+
+    # ----
+    # ok so
+    # do we need the number of neighbours in each cardinal direction?
+    # let's make it and if it ends up unused then we will comment it out or delete it
+    # it seems like for that you need to shift the entire grid
+    # and then replace all "out of bounds" with 0 burning neighbours
+    # and do we need the number of burning neighbours?
+    # yes, because we need to increase the probability of a cell burning based on that
+    # ----
  
-    random_ignition_grid = np.random.rand(GRID_SIZE,GRID_SIZE)
+    ignition_probabilities = np.random.rand(GRID_SIZE,GRID_SIZE)
 
-    burnt_neighbours = neighbourcounts[burnt.state]
+    # burnt_neighbours = neighbourcounts[burnt.state]
     burning_neighbours = neighbourcounts[burning.state]
-    dead_neighbours = burnt_neighbours + burning_neighbours
+    # dead_neighbours = burnt_neighbours + burning_neighbours
 
-    burnt_cells = (grid == burnt.state)
+    # burnt_cells = (grid == burnt.state)
     burning_cells = (grid == burning.state)
 
-    chapparal_cells = (grid == chapparal.state)
-    forest_cells = (grid == forest.state)
-    canyon_cells = (grid == canyon.state)
-    cells = chapparal_cells + forest_cells + canyon_cells
+    # chapparal_cells = (grid == chapparal.state)
+    # forest_cells = (grid == forest.state)
+    # canyon_cells = (grid == canyon.state)
+    # flammable_cells = chapparal_cells + forest_cells + canyon_cells
 
-    cells_can_ignite = (random_ignition_grid > ignition_grid)
+    cells_can_ignite = (ignition_probabilities > ignition_grid)
 
     fuel_grid[burning_cells] -= 1
     cells_no_more_fuel = (fuel_grid <= 0)
@@ -145,13 +157,15 @@ def main():
     # Create grid object using parameters from config + transition function
     grid = Grid2D(config, transition_function)
 
-    global fuel_grid, ignition_grid
+    global fuel_grid, ignition_grid, wind_direction
 
     fn_fuel = partial(switcheroo, value_key="fuel_capacity", default=1)
     fuel_grid = grid_mapper(fn_fuel, grid.grid)
 
     fn_ignition = partial(switcheroo, value_key="ignition_threshold", default=0)
     ignition_grid = grid_mapper(fn_ignition, grid.grid)
+
+    wind_direction = None # north to south
 
     # Run the CA, save grid state every generation to timeline
     timeline = grid.run()
