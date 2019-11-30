@@ -15,20 +15,21 @@ sys.path.append(main_dir_loc + 'capyle/guicomponents')
 from capyle.ca import Grid2D, Neighbourhood, randomise2d
 import capyle.utils as utils
 import numpy as np
+import numpy.random as rnd
 from collections import namedtuple
 # ---
 
 # --- GLOBAL VARIABLES AND CODE TO RUN BEFORE MAIN
 
-GRID_SIZE = (50,50)
+GRID_SIZE = 50
 
 Cell = namedtuple("Cell", "state color fuel_capacity ignition_threshold")
 
 burnt = Cell(0, (0,0,0), 0, 1)
 burning = Cell(1, (1,0,0), 192, 1)
-unburnt_chapparal = Cell(2, (0,1,0), 192, 0.4)
-unburnt_forest = Cell(3, (0.8,0.4,0.2), 960, 0.7)
-unburnt_canyon = Cell(4, (0.75,0.75,0.75), 8, 0.1)
+unburnt_chapparal = Cell(2, (0,1,0), 192, 0.6)
+unburnt_forest = Cell(3, (0.8,0.4,0.2), 960, 0.9)
+unburnt_canyon = Cell(4, (0.75,0.75,0.75), 8, 0.3)
 lake = Cell(5, (0,0,1), 1, 1)
 town = Cell(6, (1,1,1), 1, 0)
 
@@ -78,8 +79,8 @@ def setup(args):
                           lake.color,
                           town.color
                           ]
-    config.num_generations = 4320
-    config.grid_dims = GRID_SIZE
+    config.num_generations = 432#0
+    config.grid_dims = (GRID_SIZE,GRID_SIZE)
     config.wrap = False
 
     # ------------------------------------------------------------------------
@@ -95,6 +96,8 @@ def setup(args):
 def transition_function(grid, neighbourstates, neighbourcounts):
     """Function to apply the transition rules
     and return the new grid"""
+    
+    ignition_threshold_grid = np.random.rand(GRID_SIZE,GRID_SIZE)
 
     burnt_neighbours = neighbourcounts[burnt.state]
     burning_neighbours = neighbourcounts[burning.state]
@@ -108,13 +111,17 @@ def transition_function(grid, neighbourstates, neighbourcounts):
     unburnt_canyon_cells = (grid == unburnt_canyon.state)
     unburnt_cells = unburnt_chapparal_cells + unburnt_forest_cells + unburnt_canyon_cells
 
+    unburnt_chapparal_cells_can_ignite = unburnt_chapparal_cells & (ignition_threshold_grid > unburnt_chapparal.ignition_threshold)
+    unburnt_forest_cells_can_ignite = unburnt_forest_cells & (ignition_threshold_grid > unburnt_forest.ignition_threshold)
+    unburnt_canyon_cells_can_ignite = unburnt_canyon_cells & (ignition_threshold_grid > unburnt_canyon.ignition_threshold)
+    unburnt_cells_can_ignite = unburnt_chapparal_cells_can_ignite + unburnt_forest_cells_can_ignite + unburnt_canyon_cells_can_ignite
+
     global fuel_grid
     fuel_grid[burning_cells] -= 1
+    cells_no_more_fuel = (fuel_grid <= 0)
 
-    no_more_fuel = (fuel_grid <= 0)
-
-    cells_to_burnt = (grid == no_more_fuel)
-    cells_to_burning = unburnt_cells & (burning_neighbours > 0)
+    cells_to_burnt = (grid == cells_no_more_fuel)
+    cells_to_burning = unburnt_cells_can_ignite & (burning_neighbours > 0)
 
     grid[cells_to_burnt] = burnt.state
     grid[cells_to_burning] = burning.state
