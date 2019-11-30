@@ -22,33 +22,32 @@ from collections import namedtuple
 
 GRID_SIZE = (50,50)
 
-Cell = namedtuple("Cell", "state color fuel_capacity ignition_chance")
+Cell = namedtuple("Cell", "state color fuel_capacity ignition_threshold")
 
-burnt = Cell(0, (0,0,0), 0, 0)
-burning = Cell(1, (1,0,0), 192, 0)
-unburnt_chapparal = Cell(2, (0,1,0), 192, 0.6)
-unburnt_forest = Cell(3, (0.8,0.4,0.2), 960, 0.3)
-unburnt_canyon = Cell(4, (0.75,0.75,0.75), 8, 0.9)
+burnt = Cell(0, (0,0,0), 0, 1)
+burning = Cell(1, (1,0,0), 192, 1)
+unburnt_chapparal = Cell(2, (0,1,0), 192, 0.4)
+unburnt_forest = Cell(3, (0.8,0.4,0.2), 960, 0.7)
+unburnt_canyon = Cell(4, (0.75,0.75,0.75), 8, 0.1)
 lake = Cell(5, (0,0,1), 1, 1)
 town = Cell(6, (1,1,1), 1, 0)
 
-# Material = namedtuple("Material", "state color ")
+def grid_mapper(fn, grid):
+    def row_mapper(fn, row):
+        return [fn(cell) for cell in row]
+    return np.array([row_mapper(fn, row) for row in grid])
 
-# this method could be abstracted to map any function onto the grid so please do that
-fuel_grid = np.zeros(GRID_SIZE)
-def fuel_mapper(grid_row):
-    def fuel_switch(material):
-        capacities = {
-            burnt.state: burnt.fuel_capacity,
-            burning.state: burning.fuel_capacity,
-            unburnt_chapparal.state: unburnt_chapparal.fuel_capacity,
-            unburnt_forest.state: unburnt_forest.fuel_capacity,
-            unburnt_canyon.state: unburnt_canyon.fuel_capacity,
-            lake.state: lake.fuel_capacity,
-            town.state: town.fuel_capacity
-        }
-        return capacities.get(material, 1)
-    return [fuel_switch(cell) for cell in grid_row]
+def fuel_switch(cell_state):
+    fuel_capacities = {
+        burnt.state: burnt.fuel_capacity,
+        burning.state: burning.fuel_capacity,
+        unburnt_chapparal.state: unburnt_chapparal.fuel_capacity,
+        unburnt_forest.state: unburnt_forest.fuel_capacity,
+        unburnt_canyon.state: unburnt_canyon.fuel_capacity,
+        lake.state: lake.fuel_capacity,
+        town.state: town.fuel_capacity
+    }
+    return fuel_capacities.get(cell_state, 1)
 
 def setup(args):
     """Set up the config object used to interact with the GUI"""
@@ -131,7 +130,7 @@ def main():
     grid = Grid2D(config, transition_function)
     # how can I make this global and use it in the transition function?
     global fuel_grid
-    fuel_grid = np.array([fuel_mapper(row) for row in grid.grid])
+    fuel_grid = grid_mapper(fuel_switch, grid.grid)
 
     # Run the CA, save grid state every generation to timeline
     timeline = grid.run()
