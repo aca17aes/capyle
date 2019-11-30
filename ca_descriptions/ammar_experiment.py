@@ -27,9 +27,9 @@ Cell = namedtuple("Cell", "state color fuel_capacity ignition_threshold")
 
 burnt = Cell(0, (0,0,0), 0, 1)
 burning = Cell(1, (1,0,0), 192, 1)
-unburnt_chapparal = Cell(2, (0,1,0), 192, 0.6)
-unburnt_forest = Cell(3, (0.8,0.4,0.2), 960, 0.9)
-unburnt_canyon = Cell(4, (0.75,0.75,0.75), 8, 0.3)
+chapparal = Cell(2, (0,1,0), 192, 0.6)
+forest = Cell(3, (0.8,0.4,0.2), 960, 0.9)
+canyon = Cell(4, (0.75,0.75,0.75), 8, 0.3)
 lake = Cell(5, (0,0,1), 1, 1)
 town = Cell(6, (1,1,1), 1, 0)
 
@@ -42,9 +42,9 @@ def fuel_switch(cell_state):
     fuel_capacities = {
         burnt.state: burnt.fuel_capacity,
         burning.state: burning.fuel_capacity,
-        unburnt_chapparal.state: unburnt_chapparal.fuel_capacity,
-        unburnt_forest.state: unburnt_forest.fuel_capacity,
-        unburnt_canyon.state: unburnt_canyon.fuel_capacity,
+        chapparal.state: chapparal.fuel_capacity,
+        forest.state: forest.fuel_capacity,
+        canyon.state: canyon.fuel_capacity,
         lake.state: lake.fuel_capacity,
         town.state: town.fuel_capacity
     }
@@ -61,9 +61,9 @@ def setup(args):
     config.states = (
                     burnt.state,
                     burning.state,
-                    unburnt_chapparal.state,
-                    unburnt_forest.state,
-                    unburnt_canyon.state,
+                    chapparal.state,
+                    forest.state,
+                    canyon.state,
                     lake.state,
                     town.state
                     )
@@ -73,9 +73,9 @@ def setup(args):
     config.state_colors = [
                           burnt.color,
                           burning.color,
-                          unburnt_chapparal.color,
-                          unburnt_forest.color,
-                          unburnt_canyon.color,
+                          chapparal.color,
+                          forest.color,
+                          canyon.color,
                           lake.color,
                           town.color
                           ]
@@ -106,22 +106,22 @@ def transition_function(grid, neighbourstates, neighbourcounts):
     burnt_cells = (grid == burnt.state)
     burning_cells = (grid == burning.state)
 
-    unburnt_chapparal_cells = (grid == unburnt_chapparal.state)
-    unburnt_forest_cells = (grid == unburnt_forest.state)
-    unburnt_canyon_cells = (grid == unburnt_canyon.state)
-    unburnt_cells = unburnt_chapparal_cells + unburnt_forest_cells + unburnt_canyon_cells
+    chapparal_cells = (grid == chapparal.state)
+    forest_cells = (grid == forest.state)
+    canyon_cells = (grid == canyon.state)
+    cells = chapparal_cells + forest_cells + canyon_cells
 
-    unburnt_chapparal_cells_can_ignite = unburnt_chapparal_cells & (ignition_threshold_grid > unburnt_chapparal.ignition_threshold)
-    unburnt_forest_cells_can_ignite = unburnt_forest_cells & (ignition_threshold_grid > unburnt_forest.ignition_threshold)
-    unburnt_canyon_cells_can_ignite = unburnt_canyon_cells & (ignition_threshold_grid > unburnt_canyon.ignition_threshold)
-    unburnt_cells_can_ignite = unburnt_chapparal_cells_can_ignite + unburnt_forest_cells_can_ignite + unburnt_canyon_cells_can_ignite
+    chapparal_cells_can_ignite = chapparal_cells & (ignition_threshold_grid > chapparal.ignition_threshold)
+    forest_cells_can_ignite = forest_cells & (ignition_threshold_grid > forest.ignition_threshold)
+    canyon_cells_can_ignite = canyon_cells & (ignition_threshold_grid > canyon.ignition_threshold)
+    cells_can_ignite = chapparal_cells_can_ignite + forest_cells_can_ignite + canyon_cells_can_ignite
 
     global fuel_grid
     fuel_grid[burning_cells] -= 1
     cells_no_more_fuel = (fuel_grid <= 0)
 
     cells_to_burnt = (grid == cells_no_more_fuel)
-    cells_to_burning = unburnt_cells_can_ignite & (burning_neighbours > 0)
+    cells_to_burning = cells_can_ignite & (burning_neighbours > 0)
 
     grid[cells_to_burnt] = burnt.state
     grid[cells_to_burning] = burning.state
