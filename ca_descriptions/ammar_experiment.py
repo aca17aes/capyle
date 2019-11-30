@@ -36,6 +36,9 @@ class Cell:
     def __str__(self):
         return f"\n{desc} cell\nstate: {state}, color: {color}\nstatus: {values}"
 
+# an idea for test automation later
+# you can put all the values in a csv and have all the simulations run from cmd
+# probably should record them too
 burnt = Cell("burnt", 0, (0,0,0), 0, 1)
 burning = Cell("burning", 1, (1,0,0), 192, 1)
 chapparal = Cell("chapparal", 2, (0,1,0), 192, 0.6)
@@ -49,17 +52,15 @@ def grid_mapper(fn, grid):
         return [fn(cell) for cell in row]
     return np.array([row_mapper(fn, row) for row in grid])
 
+# make sure this list is in the same order as the states
+# so that the switcheroo function does not break
+# might be a good idea to change switcheroo back to a dict?
+possible_cells = [burnt, burning, chapparal, forest, canyon, lake, town]
 def switcheroo(cell_state, value_key="desc", default=-1):
-    values = {
-        burnt.state: burnt.values[value_key],
-        burning.state: burning.values[value_key],
-        chapparal.state: chapparal.values[value_key],
-        forest.state: forest.values[value_key],
-        canyon.state: canyon.values[value_key],
-        lake.state: lake.values[value_key],
-        town.state: town.values[value_key]
-    }
-    return values.get(cell_state, default)
+    cell_state = int(cell_state)
+    if cell_state < len(possible_cells):
+        return possible_cells[cell_state].values[value_key]
+    else: return default
 
 def setup(args):
     """Set up the config object used to interact with the GUI"""
@@ -148,7 +149,7 @@ def main():
 
     fn_fuel = partial(switcheroo, value_key="fuel_capacity", default=1)
     fuel_grid = grid_mapper(fn_fuel, grid.grid)
-    # might want to change this since the ignition values are only used once
+
     fn_ignition = partial(switcheroo, value_key="ignition_threshold", default=0)
     ignition_grid = grid_mapper(fn_ignition, grid.grid)
 
