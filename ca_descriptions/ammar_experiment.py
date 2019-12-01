@@ -146,7 +146,7 @@ def transition_function(grid, neighbourstates, neighbourcounts):
     }
 
     # the order of neighbourstates is NW, N, NE, W, E, SW, S, SE
-    burning_neighbours_locations = {
+    fixed_neighbour_locations = {
         "NW": neighbourstates[0],
         "N": neighbourstates[1],
         "NE": neighbourstates[2],
@@ -156,7 +156,13 @@ def transition_function(grid, neighbourstates, neighbourcounts):
         "S": neighbourstates[6],
         "SE": neighbourstates[7]
     }
+    
+    # order goes from North to NorthWest to West etc.
+    ordered_directions = ["N", "NW", "W", "SW", "S", "SE", "E", "NE"]
 
+    wind_neighbour_direction = {
+
+    }
 
 
     # print(f"I AM\n{burning_neighbours_NW}\nf"burning_neighbours_NW")
