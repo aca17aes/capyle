@@ -5,7 +5,7 @@ length = len(ordered_directions)
 # relax and for now only have the function that returns the integers
 # just like the grids you drew in your notebook
 
-wind_index = 1
+wind_index = 4
 
 print(boxes[wind_index:length])
 print(ordered_directions[wind_index:length])
