@@ -62,73 +62,6 @@ def switcheroo(cell_state, value_key="desc", default=-1):
         return possible_cells[cell_state].values[value_key]
     else: return default
 
-def eight_divided(thing):
-    return 8/thing
-
-def wind_effect(coords):
-
-    row = coords[0]
-    col = coords[1]
-
-    # global burning_NW, burning_NE, burning_SW, burning_SE, burning_N, burning_E, burning_W, burning_S
-
-    # if wind_direction == burning_NW:
-    #     row = 0
-    #     col = 0
-    # if wind_direction == burning_N:
-    #     row = 0
-    #     col = 1
-    # if wind_direction == burning_NE:
-    #     row = 0
-    #     col = 1
-    # if wind_direction == burning_W:
-    #     row = 1
-    #     col = 0
-    # if wind_direction == burning_E:
-    #     row = 1
-    #     col = 2
-    # if wind_direction == burning_SW:
-    #     row = 2
-    #     col = 0
-    # if wind_direction == burning_S:
-    #     row = 2
-    #     col = 1
-    # if wind_direction == burning_SE:
-    #     row = 2
-    #     col = 2
-    global wind_NS,wind_WE
-    wind_effect_NS = 0
-    wind_effect_WE = 0
-
-    if row == 0:
-        wind_effect_NS = 1 + wind_NS
-    elif row == 1:
-        wind_effect_NS = 1
-    elif row == 2:
-        wind_effect_NS == 1 - wind_NS
-
-    if col == 0:
-        wind_effect_WE = 1 + wind_WE
-    elif col == 1:
-        wind_effect_WE = 1
-    elif col == 2:
-        wind_effect_WE == 1 - wind_WE
-
-    return wind_effect_NS * wind_effect_WE
-
-def neighbour_sums(neighbour_position):
-    neighbour_sum = 0
-    if burning_NW: neighbour_sum += wind_effect(0, 0) / 2
-    if burning_N: neighbour_sum += wind_effect(0, 1)
-    if burning_NE: neighbour_sum += wind_effect(0, 2) / 2
-    if burning_W: neighbour_sum += wind_effect(1, 0)
-    if burning_E: neighbour_sum += wind_effect(1, 2)
-    if burning_SW: neighbour_sum += wind_effect(2, 0) / 2
-    if burning_S: neighbour_sum += wind_effect(2, 1)
-    if burning_SE: neighbour_sum += wind_effect(2, 2) / 2
-
-    return neighbour_sum
-
 def setup(args):
     """Set up the config object used to interact with the GUI"""
     config_path = args[0]
@@ -197,8 +130,6 @@ def transition_function(grid, neighbourstates, neighbourcounts):
 
     burnt_neighbours = neighbourcounts[burnt.state]
     burning_neighbours = neighbourcounts[burning.state]
-    num_neighbours = neighbourcounts[2] + neighbourcounts[3] + neighbourcounts[4] + neighbourcounts[5] + neighbourcounts[6] + burning_neighbours + burnt_neighbours
-    # print(num_neighbours)
     dead_neighbours = burnt_neighbours + burning_neighbours
 
     burnt_cells = (grid == burnt.state)
@@ -241,71 +172,16 @@ def transition_function(grid, neighbourstates, neighbourcounts):
     burning_S = (S == burning.state)
     burning_SE = (SE == burning.state)
     
-    burning_neighbours_array = [burning_NW, burning_N, burning_NE, burning_W, burning_E, burning_SW, burning_S, burning_SE]
-
-    neighbour_sums_grid = np.zeros((GRID_SIZE,GRID_SIZE))
-
-    grid_values = np.zeros((GRID_SIZE,GRID_SIZE))
-
-    # for direction in burning_neighbours_array:
-    #     neighbour_sums_grid += [a*b for a,b in zip(direction,grid_values.fill(wind_effect(direction)))]
-    # neighbour_sums_grid += [a*b for a,b in zip(burning_NW,grid_values.fill(wind_effect(0,0)))]
-    
-    neighbour_coords = {
-        "burning_NW": (0,0),
-        "burning_N": (0,1),
-        "burning_NE": (0,2),
-        "burning_W": (1,0),
-        "burning_E": (1,2),
-        "burning_SW": (2,0),
-        "burning_S": (2,1),
-        "burning_SE": (2,2)
-    }
-
-    neighbour_names = {
-        "burning_NW": burning_NW,
-        "burning_N": burning_N,
-        "burning_NE": burning_NE,
-        "burning_W": burning_W,
-        "burning_E": burning_E,
-        "burning_SW": burning_SW,
-        "burning_S": burning_S,
-        "burning_SE": burning_SE
-    }
-
-    # for key in neighbour_coords.keys():
-    #     grid_values.fill(wind_effect(neighbour_coords[key]))
-    #     neighbour_sums_grid += (neighbour_names[key] * grid_values)
-
-    # print(neighbour_sums_grid)
-    neighbour_sums_grid = np.zeros((GRID_SIZE,GRID_SIZE))
-    grid_values = np.zeros((GRID_SIZE,GRID_SIZE))
-    grid_values.fill(wind_effect((0,0))/2)
-    neighbour_sums_grid += burning_NW * grid_values
-
-    grid_values.fill(wind_effect((0,1)))
-    neighbour_sums_grid += burning_N * grid_values
-    
-    grid_values.fill(wind_effect((0,2))/2)
-    neighbour_sums_grid += burning_NE * grid_values
-    
-    grid_values.fill(wind_effect((1,0)))
-    neighbour_sums_grid += burning_W * grid_values
-    
-    grid_values.fill(wind_effect((1,2)))
-    neighbour_sums_grid += burning_E * grid_values
-    
-    grid_values.fill(wind_effect((2,0))/2)
-    neighbour_sums_grid += burning_SW * grid_values
-    
-    grid_values.fill(wind_effect((2,1)))
-    neighbour_sums_grid += burning_S * grid_values
-    
-    grid_values.fill(wind_effect((2,2))/2)
-    neighbour_sums_grid += burning_SE * grid_values
-
-    averages = grid_mapper(eight_divided, num_neighbours)
-    print(neighbour_sums_grid)
+    burning_neighbours_array = [
+        burning_NW,
+        burning_N,
+        burning_NE,
+        burning_W,
+        burning_E,
+        burning_SW,
+        burning_S,
+        burning_SE
+    ]
 
     return grid
 
