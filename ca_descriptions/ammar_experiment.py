@@ -108,7 +108,7 @@ def setup(args):
 def transition_function(grid, neighbourstates, neighbourcounts):
     """Function to apply the transition rules
     and return the new grid"""
-    global fuel_grid, ignition_grid, wind_direction
+    global fuel_grid, ignition_grid, wind
 
     # commenting out the unused lines for now
     # make sure they're ACTUALLY unused and not that you forgot them!
@@ -126,11 +126,43 @@ def transition_function(grid, neighbourstates, neighbourcounts):
     # one more thing: consider the position of the "extra forest" and the "air strike"
     # ----
  
-    ignition_probabilities = np.random.rand(GRID_SIZE,GRID_SIZE)
+    ignition_probabilities = np.random.rand(GRID_SIZE,GRID_SIZE) * 0.6
+    # for now the random chance will account for N% of ignition probability
+    # i.e. random chance has a % contribution of N%
+    # might want to make the ignition probability depend on
+    # how long the neighbours have been burning
+
+    # the order of neighbourstates is NW, N, NE, W, E, SW, S, SE
+    neighbours_NW = neighbourstates[0]
+    neighbours_N = neighbourstates[1]
+    neighbours_NE = neighbourstates[2]
+    neighbours_W = neighbourstates[3]
+    neighbours_E = neighbourstates[4]
+    neighbours_SW = neighbourstates[5]
+    neighbours_S = neighbourstates[6]
+    neighbours_SE = neighbourstates[7]
+
+    # burning_neighbours_NW = neighbours_NW == burning.state
+    # burning_neighbours_N = neighbours_N == burning.state
+    # burning_neighbours_NE = neighbours_NE == burning.state
+    # burning_neighbours_W = neighbours_W == burning.state
+    # burning_neighbours_E = neighbours_E == burning.state
+    # burning_neighbours_SW = neighbours_SW == burning.state
+    # burning_neighbours_S = neighbours_S == burning.state
+    # burning_neighbours_SE = neighbours_SE == burning.state
 
     burnt_neighbours = neighbourcounts[burnt.state]
     burning_neighbours = neighbourcounts[burning.state]
     dead_neighbours = burnt_neighbours + burning_neighbours
+
+    # for every cell:
+        # for every neighbour:
+            # if neighbour is burning:
+                # increase ignition probability by 1/8 * % contribution
+                # for now this is 90% since only random chance
+                # and neighbourcounts are included
+
+    ignition_probabilities += (0.125 * burning_neighbours) * 0.05
 
     burnt_cells = (grid == burnt.state)
     burning_cells = (grid == burning.state)
@@ -151,38 +183,6 @@ def transition_function(grid, neighbourstates, neighbourcounts):
     grid[cells_to_burnt] = burnt.state
     grid[cells_to_burning] = burning.state
 
-    # the order of neighbourstates is NW, N, NE, W, E, SW, S, SE
-    NW = neighbourstates[0]
-    N = neighbourstates[1]
-    NE = neighbourstates[2]
-    W = neighbourstates[3]
-    E = neighbourstates[4]
-    SW = neighbourstates[5]
-    S = neighbourstates[6]
-    SE = neighbourstates[7]
-
-    global burning_NW ,burning_N ,burning_NE ,burning_W ,burning_E ,burning_SW ,burning_S ,burning_SE
-
-    burning_NW = (NW == burning.state)
-    burning_N = (N == burning.state)
-    burning_NE = (NE == burning.state)
-    burning_W = (W == burning.state)
-    burning_E = (E == burning.state)
-    burning_SW = (SW == burning.state)
-    burning_S = (S == burning.state)
-    burning_SE = (SE == burning.state)
-    
-    burning_neighbours_array = [
-        burning_NW,
-        burning_N,
-        burning_NE,
-        burning_W,
-        burning_E,
-        burning_SW,
-        burning_S,
-        burning_SE
-    ]
-
     return grid
 
 def main():
@@ -193,7 +193,7 @@ def main():
     # Create grid object using parameters from config + transition function
     grid = Grid2D(config, transition_function)
 
-    global fuel_grid, ignition_grid, wind_NS, wind_WE
+    global fuel_grid, ignition_grid, wind
 
     fn_fuel = partial(switcheroo, value_key="fuel_capacity", default=1)
     fuel_grid = grid_mapper(fn_fuel, grid.grid)
@@ -203,8 +203,8 @@ def main():
 
     wind_NS = 0
     wind_WE = 0
-
-    #
+    
+    wind = (wind_NS, wind_WE)
 
     # Run the CA, save grid state every generation to timeline
     timeline = grid.run()
