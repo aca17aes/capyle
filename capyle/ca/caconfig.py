@@ -39,10 +39,16 @@ class CAConfig(object):
                 self.grid_dims = gens_to_dims(self.num_generations)
 
         # initial grid
+        # EDIT THIS PART TO AVOID REPEATING GRID INIT
         if self.initial_grid is None:
-            fillstate = self.states[0] if self.states is not None else 0
+            fillstate = self.states[2] if self.states is not None else 0
             self.initial_grid = np.zeros(self.grid_dims, dtype=type(fillstate))
             self.initial_grid.fill(fillstate)
+            # self.initial_grid[4:7, 8:24].fill(3) - Change to have dimentions and correct state
+            self.initial_grid[30:40,15:25].fill(3)
+            self.initial_grid[5:35,32:35].fill(4)
+            self.initial_grid[10:15, 5:15].fill(5)
+            self.initial_grid[49:50,0:3].fill(6)
 
         # neighbourhood array
         if self.nhood_arr is None:
