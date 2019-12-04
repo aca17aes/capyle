@@ -16,91 +16,55 @@ from capyle.ca import Grid2D, Neighbourhood, randomise2d
 import capyle.utils as utils
 import numpy as np
 from functools import partial
-from enum import Enum
-# ---
 
-# # using _SRC_4 information (Zhang et al., 2017)
-# fire =
-# plant =
+# --- ADJUST THE NECESSARY VALUES IN HERE ---
 
-# wind_speed =
-# wind_direction =
+# note for Adam: please test these values and
+# replace S, L, and H variables in the comments
+# then get rid of this comment after testing
+# Thanks!
 
-# temperature =
-# moisture =
-
-# # model_formula ->
-# #     R = R_0 * K_phi * K_theta * K_s * K_r
-
-# # fire_spread_formula ->
-# #     S^t+Deltat_i,j = S^t_i,j + (R^t_i-1,j-1 + ... + R^t_i+1,j+1) * Deltat/L
-
-# # revised_model_formula ->
-# #     R_0 = a * T + b * W + c * (100 - RH) - d
-
-# R is the speed of spread of fire
-# R_0 is the initial speed of spread of fire
-# K_phi is the wind coefficient
-# K_theta is the terrain factor # not used here so is set to 1
-# K_s is the combistible index # ignition threshold? look at the source
-# a = 0.03 # not used here so is set to None
-# b = 0.05
-# c = 0.01
-# d = 0.3
-# T is the temperature (degreeC) # not used here so is set to None
-
-# --- GLOBAL VARIABLES AND CODE TO RUN BEFORE MAIN
-
+# to be used as the length and width of the grid
 GRID_SIZE = 50
 
-# turns out the better way is just to make a class I suppose -\n/- (attempt at recreating shrug emoji)
+# strength of North->South and West->East wind
+# tested for values between -S and S
+# adjust wind strength here
+WIND_NS = 1
+WIND_WE = -1
+
+# base ignition thresholds for the materials that can burn
+# adjust material flammability here
+# chapparal tested for values between L1 and H1
+# forest tested for values between L2 and H2
+# canyon tested for values between L3 and H3
+THRESHOLD_CHAPPARAL = 0.8
+THRESHOLD_FOREST = 6.1
+THRESHOLD_CANYON = 0.3
+# ---
+
 class Cell:
-    def __init__(self, desc, state, color,
-                 fuel_capacity=1,
-                 ignition_threshold=0):
-        
+    def __init__(self, name, state, color,
+                 fuel_capacity=1, ignition_threshold=0):
+
         self.state = state
         self.color = color
 
-        self.values = dict()
-        self.values["desc"] = desc
-        self.values["fuel_capacity"] = fuel_capacity
-        self.values["ignition_threshold"] = ignition_threshold
-        # self.values["burning_neighbour_duration"] = burning_neighbour_duration
+        self.params = dict()
+        self.params["name"] = name
+        self.params["fuel_capacity"] = fuel_capacity
+        self.params["ignition_threshold"] = ignition_threshold
 
-    def __str__(self):
-        return f"\n{desc} cell\nstate: {state}, color: {color}\nstatus: {values}"
-
-# an idea for test automation later
-# you can put all the values in a csv and have all the simulations run from cmd
-# probably should record them too
-burnt = Cell("burnt", 0, (0,0,0), 0, 1*4)
-burning = Cell("burning", 1, (1,0,0), 192, 1*4)
-chapparal = Cell("chapparal", 2, (0,1,0), 192, 0.4*4)
-forest = Cell("forest", 3, (0.8,0.4,0.2), 960, 0.7*4)
-canyon = Cell("canyon", 4, (0.75,0.75,0.75), 8, 0.1*4)
-lake = Cell("lake", 5, (0,0,1), 1, 1*4)
-town = Cell("town", 6, (1,1,1), 1, 0*4)
-
-# the order of neighbourstates is NW, N, NE, W, E, SW, S, SE
-class Direction(Enum):
-    NW = 0
-    N = 1
-    NE = 2
-    W = 3
-    E = 4
-    SW = 5
-    S = 6
-    SE = 7
-
-def grid_mapper(fn, grid):
-    def row_mapper(fn, row):
-        return [fn(cell) for cell in row]
-    return np.array([row_mapper(fn, row) for row in grid])
+burnt = Cell("burnt", 0, (0,0,0), 0, 999999)
+burning = Cell("burning", 1, (1,0,0), 192, 999999)
+chapparal = Cell("chapparal", 2, (0,1,0), 192, THRESHOLD_CHAPPARAL)
+forest = Cell("forest", 3, (0.8,0.4,0.2), 960, THRESHOLD_FOREST)
+canyon = Cell("canyon", 4, (0.75,0.75,0.75), 8, THRESHOLD_CANYON)
+lake = Cell("lake", 5, (0,0,1), 1, 999999)
+town = Cell("town", 6, (1,1,1), 1, 0)
 
 # make sure this list is in the same order as the states
 # so that the switcheroo function does not break
-# might be a good idea to change switcheroo back to a dict?
 possible_cells = [
                  burnt,
                  burning,
@@ -110,11 +74,57 @@ possible_cells = [
                  lake,
                  town
                  ]
-def switcheroo(cell_state, value_key="desc", default=-1):
+
+class Direction:
+    def __init__(self, value, name, coords):
+
+        self.value = value
+        self.name = name
+        self.coords = coords
+
+# the order of neighbourstates is NW, N, NE, W, E, SW, S, SE
+NW = Direction(0, "NW", (-1,-1))
+N = Direction(1, "N", (-1,0))
+NE = Direction(2, "NE", (-1,1))
+W = Direction(3, "W", (0,-1))
+E = Direction(4, "E", (0,1))
+SW = Direction(5, "SW", (1,-1))
+S = Direction(6, "S", (1,0))
+SE = Direction(7, "SE", (1,1))
+
+possible_directions = [NW, N, NE, W, E, SW, S, SE]
+
+# this function maps cell functions onto an entire grid
+def grid_mapper(fn, grid):
+    def row_mapper(fn, row):
+        return [fn(cell) for cell in row]
+    return np.array([row_mapper(fn, row) for row in grid])
+
+# this function relies on possible_cells array existing and
+# returns values for a particular cell passed into it
+def switcheroo(cell_state, value_key="name", default=-100):
     cell_state = int(cell_state)
     if cell_state < len(possible_cells):
-        return possible_cells[cell_state].values[value_key]
-    else: return default
+        return possible_cells[cell_state].params[value_key]
+    else:
+        return default
+
+# this function relies on WIND_NS and WIND_WE existing and
+# calculates the wind combined effect for each neighbour
+def wind_effect(coords):
+    row = coords[0]
+    col = coords[1]
+
+    wind_effect_NS = 1 - (row * WIND_NS)
+    wind_effect_WE = 1 - (col * WIND_WE)
+
+    return wind_effect_NS * wind_effect_WE
+
+# this function does what it says on the tin
+# so this comment is probably unnecessary
+# but we do need some bonus points for comments!
+def six_divided_by(num):
+    return 6/num
 
 def setup(args):
     """Set up the config object used to interact with the GUI"""
@@ -135,7 +145,6 @@ def setup(args):
                     )
 
     # ---- Override the defaults below (these may be changed at anytime) -----
-
     config.state_colors = [
                           burnt.color,
                           burning.color,
@@ -145,7 +154,7 @@ def setup(args):
                           lake.color,
                           town.color
                           ]
-    config.num_generations = 432#0
+    config.num_generations = 432 # 9 days - just for testing # 4320 # 90 days
     config.grid_dims = (GRID_SIZE,GRID_SIZE)
     config.wrap = False
 
@@ -162,73 +171,39 @@ def setup(args):
 def transition_function(grid, neighbourstates, neighbourcounts):
     """Function to apply the transition rules
     and return the new grid"""
-    global fuel_grid, ignition_grid, durations_grid, wind_direction, wind_speed
+    
+    # prepare to use global grids information
+    global fuel_grid, ignition_grid, neighbour_multipliers
 
-    scale_random = 0.2
-    scale_duration = 0.02
-    scale_neighbours = 0.2
-    scale_wind = 3
+    burning_neighbour_counts = neighbourcounts[burning.state]
+    rand_ignition_probabilities = np.random.rand(GRID_SIZE,GRID_SIZE)
 
-    # commenting out the unused lines for now
-    # make sure they're ACTUALLY unused and not that you forgot them!
+    wind_effect_grid = np.zeros((GRID_SIZE,GRID_SIZE))
+    burning_neighbours_effect = np.zeros((GRID_SIZE,GRID_SIZE))
 
-    # ----
-    # ok so
-    # do we need the number of neighbours in each cardinal direction?
-    # let's make it and if it ends up unused then we will comment it out or delete it
-    # it seems like for that you need to shift the entire grid
-    # OR simply figure out how neighbourstates works
-    # and then replace all "out of bounds" with 0 burning neighbours
-    # and do we need the number of burning neighbours?
-    # yes, because we need to increase the probability of a cell burning based on that
-    # one more thing: consider integrating flammability and iginition threshold
-    # one more thing: consider the position of the "extra forest" and the "air strike"
-    # ----
- 
-    ignition_probabilities = np.random.rand(GRID_SIZE,GRID_SIZE) * scale_random
+    for direction in possible_directions:
+        # here the "diagonal" wind direction effects are divided by 2 to
+        # reduce their impact. hence the `/len(direction.name)` part
+        wind_effect_grid.fill(wind_effect(direction.coords)/len(direction.name))
+        burning_neighbours_effect_grid = neighbourstates[direction.value] == burning.state
+        burning_neighbours_effect += burning_neighbours_effect_grid * wind_effect_grid * rand_ignition_probabilities
 
-    # for now the random chance will account for 33.3% of ignition probability
-    # i.e. random chance has a % contribution of 33.3%
-    # the other 66.7% are from wind and burning neighbours
-    # for now all factors are assumed equal but can be adjusted later
-    # might want to make the ignition probability depend on
-    # how long the neighbours have been burning
+    burning_neighbours_average = grid_mapper(six_divided_by, neighbour_multipliers)
+    base_burning_probabilities = (burning_neighbours_effect * burning_neighbours_average)
 
-    burnt_neighbours = neighbourcounts[burnt.state]
-    burning_neighbours = neighbourcounts[burning.state]
-    dead_neighbours = burnt_neighbours + burning_neighbours
-
-    ignition_probabilities += (0.125 * burning_neighbours) * scale_neighbours
-    durations_grid += burning_neighbours
-    ignition_probabilities += durations_grid * scale_duration
-
-    # # this doesn't work
-    # # maybe try having a wind grid that scales off of it's speed and
-    # # just adds an extra probability grid?
-    # if wind_direction:
-    #     burning_neighbour_scalar = (neighbourstates[wind_direction] == burning.state)
-    #     ignition_probabilities += (wind_speed * burning_neighbour_scalar) * scale_wind
-
-    wind_probabilities_grid = np.random.rand(GRID_SIZE,GRID_SIZE)
-
-    # alright how about stop and take a break now and
-    # after that try revisiting the formulas with pen and paper
-
-    burnt_cells = (grid == burnt.state)
     burning_cells = (grid == burning.state)
+    flammable_cells = (grid == chapparal.state) + (grid == forest.state) + (grid == canyon.state)
+    ignitable_cells = flammable_cells & (base_burning_probabilities + rand_ignition_probabilities > ignition_grid)
 
-    chapparal_cells = (grid == chapparal.state)
-    forest_cells = (grid == forest.state)
-    canyon_cells = (grid == canyon.state)
-    flammable_cells = chapparal_cells + forest_cells + canyon_cells
-
-    cells_can_ignite = (ignition_probabilities > ignition_grid) & flammable_cells
+    # thanks for scrolling to see the long and descriptive names
+    # the lines only get shorter from here so don't worry
+    # you won't have to do this again :-)
 
     fuel_grid[burning_cells] -= 1
     cells_no_more_fuel = (fuel_grid <= 0)
 
     cells_to_burnt = (grid == cells_no_more_fuel)
-    cells_to_burning = cells_can_ignite & (burning_neighbours > 0)
+    cells_to_burning = ignitable_cells & (burning_neighbour_counts > 0)
 
     grid[cells_to_burnt] = burnt.state
     grid[cells_to_burning] = burning.state
@@ -237,27 +212,39 @@ def transition_function(grid, neighbourstates, neighbourcounts):
 
 def main():
     """ Main function that sets up, runs and saves CA"""
+
+    # declare global grids information
+    global fuel_grid, ignition_grid, neighbour_multipliers
+
     # Get the config object from set up
     config = setup(sys.argv[1:])
 
     # Create grid object using parameters from config + transition function
     grid = Grid2D(config, transition_function)
 
-    global fuel_grid, ignition_grid, durations_grid, wind_direction, wind_speed
-
-    fn_fuel = partial(switcheroo, value_key="fuel_capacity", default=1)
+    # create grid containing all cells' fuel capacities
+    fn_fuel = partial(switcheroo,
+        value_key="fuel_capacity", default=1)
     fuel_grid = grid_mapper(fn_fuel, grid.grid)
 
-    fn_ignition = partial(switcheroo, value_key="ignition_threshold", default=0)
+    # create grid containing all cells' ignition thresholds
+    # (or flammability values)
+    fn_ignition = partial(switcheroo,
+        value_key="ignition_threshold", default=0)
     ignition_grid = grid_mapper(fn_ignition, grid.grid)
 
-    # fn_durations = partial(switcheroo, value_key="burning_neighbour_duration", default=0)
-    # durations_grid = grid_mapper(fn_durations, grid.grid)
-
-    durations_grid = np.zeros((GRID_SIZE,GRID_SIZE))
-
-    wind_direction = Direction.NW.value
-    wind_speed = 1
+    # set the maximum number of neighbours for the fire spread multiplier
+    neighbour_multipliers = np.zeros((GRID_SIZE,GRID_SIZE))
+    neighbour_multipliers.fill(6)
+    neighbour_multipliers[0].fill(4)
+    neighbour_multipliers[GRID_SIZE-1].fill(4)
+    for row in range(0, GRID_SIZE):
+        if row == 0 or row == GRID_SIZE-1:
+            neighbour_multipliers[row][0] = 2.5
+            neighbour_multipliers[row][GRID_SIZE-1] = 2.5
+        else:
+            neighbour_multipliers[row][0] = 4
+            neighbour_multipliers[row][GRID_SIZE-1] = 4
 
     # Run the CA, save grid state every generation to timeline
     timeline = grid.run()
