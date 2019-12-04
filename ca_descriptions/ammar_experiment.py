@@ -19,6 +19,36 @@ from functools import partial
 from enum import Enum
 # ---
 
+# # using _SRC_4 information (Zhang et al., 2017)
+# fire =
+# plant =
+
+# wind_speed =
+# wind_direction =
+
+# temperature =
+# moisture =
+
+# # model_formula ->
+# #     R = R_0 * K_phi * K_theta * K_s * K_r
+
+# # fire_spread_formula ->
+# #     S^t+Deltat_i,j = S^t_i,j + (R^t_i-1,j-1 + ... + R^t_i+1,j+1) * Deltat/L
+
+# # revised_model_formula ->
+# #     R_0 = a * T + b * W + c * (100 - RH) - d
+
+# R is the speed of spread of fire
+# R_0 is the initial speed of spread of fire
+# K_phi is the wind coefficient
+# K_theta is the terrain factor # not used here so is set to 1
+# K_s is the combistible index # ignition threshold? look at the source
+# a = 0.03 # not used here so is set to None
+# b = 0.05
+# c = 0.01
+# d = 0.3
+# T is the temperature (degreeC) # not used here so is set to None
+
 # --- GLOBAL VARIABLES AND CODE TO RUN BEFORE MAIN
 
 GRID_SIZE = 50
