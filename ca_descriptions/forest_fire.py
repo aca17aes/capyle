@@ -31,15 +31,15 @@ GRID_SIZE = 50
 # tested for values between -S and S
 # adjust wind strength here
 WIND_NS = 1
-WIND_WE = -1
+WIND_WE = 0
 
 # base ignition thresholds for the materials that can burn
 # adjust material flammability here
 # chapparal tested for values between L1 and H1
 # forest tested for values between L2 and H2
 # canyon tested for values between L3 and H3
-THRESHOLD_CHAPPARAL = 0.8
-THRESHOLD_FOREST = 6.1
+THRESHOLD_CHAPPARAL = 2
+THRESHOLD_FOREST = 5
 THRESHOLD_CANYON = 0.3
 # ---
 
@@ -233,7 +233,7 @@ def main():
         value_key="ignition_threshold", default=0)
     ignition_grid = grid_mapper(fn_ignition, grid.grid)
 
-    # set the maximum number of neighbours for the fire spread multiplier
+    # set the maximum value of neighbours for the fire spread multiplier
     neighbour_multipliers = np.zeros((GRID_SIZE,GRID_SIZE))
     neighbour_multipliers.fill(6)
     neighbour_multipliers[0].fill(4)
