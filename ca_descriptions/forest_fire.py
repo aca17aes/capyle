@@ -25,20 +25,21 @@ from functools import partial
 # Thanks!
 
 # to be used as the length and width of the grid
+# if you change change this also change the preset map in ca_config
 GRID_SIZE = 50
 
 # strength of North->South and West->East wind
 # tested for values between -S and S
 # adjust wind strength here
-WIND_NS = 1
-WIND_WE = 0
+WIND_NS = 0.5
+WIND_WE = -0.5
 
 # base ignition thresholds for the materials that can burn
 # adjust material flammability here
 # chapparal tested for values between L1 and H1
 # forest tested for values between L2 and H2
 # canyon tested for values between L3 and H3
-THRESHOLD_CHAPPARAL = 2
+THRESHOLD_CHAPPARAL = 1.9
 THRESHOLD_FOREST = 5
 THRESHOLD_CANYON = 0.3
 # ---
@@ -61,7 +62,7 @@ chapparal = Cell("chapparal", 2, (0,1,0), 192, THRESHOLD_CHAPPARAL)
 forest = Cell("forest", 3, (0.8,0.4,0.2), 960, THRESHOLD_FOREST)
 canyon = Cell("canyon", 4, (0.75,0.75,0.75), 8, THRESHOLD_CANYON)
 lake = Cell("lake", 5, (0,0,1), 1, 999999)
-town = Cell("town", 6, (1,1,1), 1, 0)
+town = Cell("town", 6, (1,1,1), 999999, 0)
 
 # make sure this list is in the same order as the states
 # so that the switcheroo function does not break
@@ -173,7 +174,7 @@ def transition_function(grid, neighbourstates, neighbourcounts):
     and return the new grid"""
     
     # prepare to use global grids information
-    global fuel_grid, ignition_grid, neighbour_multipliers
+    global fuel_grid, ignition_grid, neighbour_multipliers, counter
 
     burning_neighbour_counts = neighbourcounts[burning.state]
     rand_ignition_probabilities = np.random.rand(GRID_SIZE,GRID_SIZE)
@@ -192,8 +193,13 @@ def transition_function(grid, neighbourstates, neighbourcounts):
     base_burning_probabilities = (burning_neighbours_effect * burning_neighbours_average)
 
     burning_cells = (grid == burning.state)
-    flammable_cells = (grid == chapparal.state) + (grid == forest.state) + (grid == canyon.state)
+    flammable_cells = (grid == chapparal.state) + (grid == forest.state) + (grid == canyon.state) + (grid == town.state)
     ignitable_cells = flammable_cells & (base_burning_probabilities + rand_ignition_probabilities > ignition_grid)
+
+    town_burns_next_step = (grid == town.state) & (burning_neighbour_counts > 0)
+    counter += 1
+    if (town_burns_next_step.any()):
+        print(f"the step is {counter} and the town is ON FIRE!")
 
     # thanks for scrolling to see the long and descriptive names
     # the lines only get shorter from here so don't worry
@@ -214,7 +220,8 @@ def main():
     """ Main function that sets up, runs and saves CA"""
 
     # declare global grids information
-    global fuel_grid, ignition_grid, neighbour_multipliers
+    global fuel_grid, ignition_grid, neighbour_multipliers, counter
+    counter = 0
 
     # Get the config object from set up
     config = setup(sys.argv[1:])
