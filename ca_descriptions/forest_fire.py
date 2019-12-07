@@ -19,28 +19,23 @@ from functools import partial
 
 # --- ADJUST THE NECESSARY VALUES IN HERE ---
 
-# note for Adam: please test these values and
-# replace S, L, and H variables in the comments
-# then get rid of this comment after testing
-# Thanks!
-
 # to be used as the length and width of the grid
 # if you change change this also change the preset map in ca_config
 GRID_SIZE = 50
 
 # strength of North->South and West->East wind
-# tested for values between -S and S
+# test for values between -2 and 2
 # adjust wind strength here
-WIND_NS = 0.5
-WIND_WE = -0.5
+WIND_NS = 0
+WIND_WE = 0
 
 # base ignition thresholds for the materials that can burn
 # adjust material flammability here
-# chapparal tested for values between L1 and H1
-# forest tested for values between L2 and H2
-# canyon tested for values between L3 and H3
-THRESHOLD_CHAPPARAL = 1.9
-THRESHOLD_FOREST = 5
+# chaparral tested for values from 1.6
+# forest tested for values from 3
+# canyon tested for values from 0.1
+THRESHOLD_CHAPARRAL = 1.9
+THRESHOLD_FOREST = 3.5
 THRESHOLD_CANYON = 0.3
 # ---
 
@@ -58,18 +53,18 @@ class Cell:
 
 burnt = Cell("burnt", 0, (0,0,0), 0, 999999)
 burning = Cell("burning", 1, (1,0,0), 192, 999999)
-chapparal = Cell("chapparal", 2, (0,1,0), 192, THRESHOLD_CHAPPARAL)
+chaparral = Cell("chaparral", 2, (0,1,0), 192, THRESHOLD_CHAPARRAL)
 forest = Cell("forest", 3, (0.8,0.4,0.2), 960, THRESHOLD_FOREST)
 canyon = Cell("canyon", 4, (0.75,0.75,0.75), 8, THRESHOLD_CANYON)
 lake = Cell("lake", 5, (0,0,1), 1, 999999)
-town = Cell("town", 6, (1,1,1), 999999, 0)
+town = Cell("town", 6, (1,1,1), 240, 0)
 
 # make sure this list is in the same order as the states
 # so that the switcheroo function does not break
 possible_cells = [
                  burnt,
                  burning,
-                 chapparal,
+                 chaparral,
                  forest,
                  canyon,
                  lake,
@@ -138,7 +133,7 @@ def setup(args):
     config.states = (
                     burnt.state,
                     burning.state,
-                    chapparal.state,
+                    chaparral.state,
                     forest.state,
                     canyon.state,
                     lake.state,
@@ -149,13 +144,13 @@ def setup(args):
     config.state_colors = [
                           burnt.color,
                           burning.color,
-                          chapparal.color,
+                          chaparral.color,
                           forest.color,
                           canyon.color,
                           lake.color,
                           town.color
                           ]
-    config.num_generations = 432 # 9 days - just for testing # 4320 # 90 days
+    config.num_generations = 1440 # 30 days
     config.grid_dims = (GRID_SIZE,GRID_SIZE)
     config.wrap = False
 
@@ -193,18 +188,17 @@ def transition_function(grid, neighbourstates, neighbourcounts):
     base_burning_probabilities = (burning_neighbours_effect * burning_neighbours_average)
 
     burning_cells = (grid == burning.state)
-    flammable_cells = (grid == chapparal.state) + (grid == forest.state) + (grid == canyon.state) + (grid == town.state)
+    flammable_cells = (grid == chaparral.state) + (grid == forest.state) + (grid == canyon.state) + (grid == town.state)
     ignitable_cells = flammable_cells & (base_burning_probabilities + rand_ignition_probabilities > ignition_grid)
-
-    town_burns_next_step = (grid == town.state) & (burning_neighbour_counts > 0)
-    counter += 1
-    if (town_burns_next_step.any()):
-        print(f"the step is {counter} and the town is ON FIRE!")
 
     # thanks for scrolling to see the long and descriptive names
     # the lines only get shorter from here so don't worry
     # you won't have to do this again :-)
 
+    town_burns_next_step = (grid == town.state) & (burning_neighbour_counts > 0)
+    counter += 1
+    if (town_burns_next_step.any()):
+        print(f"the step is {counter} and the town is ON FIRE!")
     fuel_grid[burning_cells] -= 1
     cells_no_more_fuel = (fuel_grid <= 0)
 
@@ -223,6 +217,7 @@ def main():
     global fuel_grid, ignition_grid, neighbour_multipliers, counter
     counter = 0
 
+    print("Start of new simulation")
     # Get the config object from set up
     config = setup(sys.argv[1:])
 
